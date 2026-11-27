@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Humanizador</title>
+<style>
+  :root { --bg:#0e0e12; --card:#17171f; --line:#26262f; --txt:#e8e8ef; --sub:#8a8a99; --ok:#3ecf8e; --err:#ff5c7a; --warn:#ffb84d; --acc:#7c6cff; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--txt); font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; display:flex; justify-content:center; padding:24px; }
+  .wrap { width:100%; max-width:520px; }
+  h1 { font-size:20px; font-weight:600; margin-bottom:4px; }
+  .sub { color:var(--sub); font-size:13px; margin-bottom:20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:14px; }
+  label { display:block; font-size:12px; color:var(--sub); margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px; }
+  textarea, input, select { width:100%; background:#0f0f14; border:1px solid var(--line); border-radius:8px; color:var(--txt); padding:10px 12px; font-size:14px; font-family:inherit; outline:none; }
+  textarea { resize:vertical; min-height:70px; }
+  input:focus, textarea:focus, select:focus { border-color:var(--acc); }
+  button { width:100%; padding:12px; border:none; border-radius:8px; background:var(--acc); color:#fff; font-size:15px; font-weight:600; cursor:pointer; margin-top:14px; transition:.15s; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  button:not(:disabled):hover { filter:brightness(1.1); }
+  #log { font-family:'Cascadia Code',Consolas,monospace; font-size:12.5px; line-height:1.7; max-height:340px; overflow-y:auto; padding:12px; background:#0a0a0e; border:1px solid var(--line); border-radius:8px; white-space:pre-wrap; word-break:break-word; }
+  #log:empty::before { content:'aguardando…'; color:var(--sub); }
+  .ok { color:var(--ok); } .err { color:var(--err); } .warn { color:var(--warn); } .acc { color:var(--acc); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Humanizador</h1>
+  <div class="sub">token → profile sorteado + foto sorteada + hypesquad</div>
+
+  <div class="card">
+    <label>Tokens (um por linha)</label>
+    <textarea id="tokens" placeholder="MTIz...&#10;MTIz..."></textarea>
+
+    <label style="margin-top:12px">HypeSquad</label>
+    <select id="hypesquad">
+      <option value="0">nenhum</option>
+      <option value="1">1 — Bravery</option>
+      <option value="2">2 — Brilliance</option>
+      <option value="3">3 — Balance</option>
+    </select>
+
+    <button id="go">Humanizar</button>
+  </div>
+
+  <div class="card">
+    <label>Status</label>
+    <div id="log"></div>
+  </div>
+</div>
+
+<script>
+const GITHUB_USER = "kahbbz";
+const GITHUB_REPO = "Sofuco";
+const GITHUB_BRANCH = "main";
+
+let PHOTOS = [];
+
+const PROFILES = [
+  {"display":"Luna ✦","username":"luna.vibes","bio":"19 | just vibes and late night playlists","pronouns":"she/her"},
+  {"display":"Kai","username":"kai.estrator","bio":"20 | gamer | mostly here for the memes","pronouns":"he/him"},
+  {"display":"Mira","username":"mira.uwu","bio":"18 | art student | will draw your oc for free","pronouns":"they/them"},
+  {"display":"Noa","username":"noa.chill","bio":"21 | coffee, lofi, and bad decisions","pronouns":"they/them"},
+  {"display":"Ravi","username":"ravi.plays","bio":"19 | valorant addict | don't ask my rank","pronouns":"he/him"},
+  {"display":"Sol","username":"sol.rays","bio":"20 | sun chaser | probably outside","pronouns":"she/her"},
+  {"display":"Theo","username":"theo.dev","bio":"22 | code by day, games by night","pronouns":"he/him"},
+  {"display":"Ivy","username":"ivy.green","bio":"18 | plants and quiet chaos","pronouns":"she/her"},
+  {"display":"Ash","username":"ash.falls","bio":"21 | rock music | tired but thriving","pronouns":"they/them"},
+  {"display":"Nico","username":"nico.naps","bio":"19 | professional sleeper","pronouns":"he/him"},
+  {"display":"Zara","username":"zara.moon","bio":"20 | moonlight and messy hair","pronouns":"she/her"},
+  {"display":"Finn","username":"finn.irl","bio":"22 | just a guy trying his best","pronouns":"he/him"},
+  {"display":"Cleo","username":"cleo.cats","bio":"18 | three cats and no regrets","pronouns":"she/her"},
+  {"display":"Ren","username":"ren.void","bio":"21 | quiet in public, loud online","pronouns":"they/them"},
+  {"display":"Dalia","username":"dalia.sky","bio":"19 | dreamer | collector of sunsets","pronouns":"she/her"},
+  {"display":"Milo","username":"milo.memes","bio":"20 | certified shitposter","pronouns":"he/him"},
+  {"display":"Sage","username":"sage.leaf","bio":"22 | tea, books, and rain sounds","pronouns":"they/them"},
+  {"display":"Ruby","username":"ruby.red","bio":"18 | loud laugh | soft heart","pronouns":"she/her"},
+  {"display":"Owen","username":"owen.slow","bio":"21 | take it easy, always","pronouns":"he/him"},
+  {"display":"Nina","username":"nina.notes","bio":"19 | music is my personality","pronouns":"she/her"},
+  {"display":"Jules","username":"jules.wav","bio":"20 | bedroom producer | not famous yet","pronouns":"they/them"},
+  {"display":"Eli","username":"eli.quiet","bio":"22 | i mostly lurk, sometimes talk","pronouns":"he/him"},
+  {"display":"Tessa","username":"tessa.pink","bio":"18 | everything is pink and that's fine","pronouns":"she/her"},
+  {"display":"Rook","username":"rook.crow","bio":"21 | night owl | cryptic on purpose","pronouns":"they/them"},
+  {"display":"Maya","username":"maya.waves","bio":"20 | ocean kid | salt in my hair","pronouns":"she/her"},
+  {"display":"Levi","username":"levi.codes","bio":"19 | building things that break","pronouns":"he/him"},
+  {"display":"Iris","username":"iris.soft","bio":"22 | gentle energy only","pronouns":"she/her"},
+  {"display":"Cato","username":"cato.pixel","bio":"18 | indie games and cold pizza","pronouns":"he/him"},
+  {"display":"Juno","username":"juno.stars","bio":"21 | space nerd | will talk your ear off","pronouns":"they/them"},
+  {"display":"Lia","username":"lia.lately","bio":"19 | figuring it out, slowly","pronouns":"she/her"},
+  {"display":"Dante","username":"dante.dusk","bio":"20 | late walks | darker playlists","pronouns":"he/him"},
+  {"display":"Suki","username":"suki.tea","bio":"18 | matcha and manga","pronouns":"she/her"},
+  {"display":"Remy","username":"remy.fox","bio":"22 | clever hands, quiet mouth","pronouns":"he/him"},
+  {"display":"Aya","username":"aya.dreams","bio":"20 | soft spoken | loud thoughts","pronouns":"she/her"},
+  {"display":"Kian","username":"kian.fps","bio":"19 | aim trainer enjoyer","pronouns":"he/him"},
+  {"display":"Vera","username":"vera.velvet","bio":"21 | vintage soul | new problems","pronouns":"she/her"},
+  {"display":"Moss","username":"moss.and.fern","bio":"18 | forest brain | dirt under nails","pronouns":"they/them"},
+  {"display":"Ari","username":"ari.after","bio":"22 | here after midnight mostly","pronouns":"he/him"},
+  {"display":"Lena","username":"lena.lowkey","bio":"19 | lowkey iconic | highkey tired","pronouns":"she/her"},
+  {"display":"Bram","username":"bram.bass","bio":"20 | bassist | bad posture","pronouns":"he/him"},
+  {"display":"Sena","username":"sena.silk","bio":"18 | soft aesthetic | sharp tongue","pronouns":"she/her"},
+  {"display":"Toby","username":"toby.toast","bio":"21 | burnt toast enthusiast","pronouns":"he/him"},
+  {"display":"Yara","username":"yara.yell","bio":"20 | i yell about games a lot","pronouns":"she/her"},
+  {"display":"Rin","username":"rin.rose","bio":"19 | pink hair | zero patience","pronouns":"they/them"},
+  {"display":"Kade","username":"kade.void","bio":"22 | quiet menace","pronouns":"he/him"},
+  {"display":"Emi","username":"emi.echo","bio":"18 | i repeat myself, sorry","pronouns":"she/her"},
+  {"display":"Luca","username":"luca.late","bio":"20 | always late, always sorry","pronouns":"he/him"},
+  {"display":"Noor","username":"noor.light","bio":"21 | light in the dark | tired optimist","pronouns":"she/her"},
+  {"display":"Pax","username":"pax.pixel","bio":"19 | calm on purpose","pronouns":"they/them"},
+  {"display":"Tara","username":"tara.tide","bio":"22 | tide goes out, i go home","pronouns":"she/her"},
+  {"display":"Zeke","username":"zeke.zap","bio":"18 | chaotic good","pronouns":"he/him"},
+  {"display":"Faye","username":"faye.fade","bio":"20 | fade in, fade out","pronouns":"she/her"},
+  {"display":"Bo","username":"bo.bones","bio":"21 | skinny jeans and big dreams","pronouns":"he/him"},
+  {"display":"Lux","username":"lux.glow","bio":"19 | glow up in progress","pronouns":"they/them"},
+  {"display":"Cira","username":"cira.cloud","bio":"18 | head in the clouds","pronouns":"she/her"},
+  {"display":"Rafe","username":"rafe.run","bio":"22 | runs at 5am, don't ask","pronouns":"he/him"},
+  {"display":"Nia","username":"nia.nova","bio":"20 | nova by name, bright by nature","pronouns":"she/her"},
+  {"display":"Silas","username":"silas.still","bio":"21 | still waters","pronouns":"he/him"},
+  {"display":"Opal","username":"opal.ore","bio":"19 | shiny things collector","pronouns":"she/her"},
+  {"display":"Wren","username":"wren.wild","bio":"18 | wild at heart | soft in person","pronouns":"they/them"}
+];
+
+const API = "https://discord.com/api/v10";
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+const log = (msg, cls="") => {
+  const el = $("log");
+  el.innerHTML += `<span class="${cls}">${msg}</span>\n`;
+  el.scrollTop = el.scrollHeight;
+};
+
+const headers = token => ({
+  "Authorization": token,
+  "Content-Type": "application/json",
+  "User-Agent": "Mozilla/5.0"
+});
+
+function shuffle(a) {
+  const arr = a.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+async function carregarFotosDoGitHub() {
+  const url = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/`;
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const arquivos = await r.json();
+    const imagens = arquivos.filter(f => f.name.match(/\.(png|jpe?g|webp)$/i));
+    
+    PHOTOS = imagens.map(img => 
+      `https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${GITHUB_BRANCH}/${img.name}`
+    );
+    log(`carregadas ${PHOTOS.length} fotos do repositório`, "ok");
+  } catch (e) {
+    log(`erro ao buscar fotos no GitHub: ${e.message}`, "err");
+  }
+}
+
+async function patchUser(token, payload) {
+  const r = await fetch(`${API}/users/@me`, { method:"PATCH", headers:headers(token), body:JSON.stringify(payload) });
+  return { ok: r.status, body: await r.text() };
+}
+
+async function patchProfile(token, payload) {
+  const r = await fetch(`${API}/users/@me/profile`, { method:"PATCH", headers:headers(token), body:JSON.stringify(payload) });
+  return { ok: r.status, body: await r.text() };
+}
+
+async function patchAvatarFromURL(token, url) {
+  if (!url) return { ok: 0, body: "sem foto" };
+  const blob = await fetch(url).then(r => r.blob());
+  const b64 = await new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = rej;
+    fr.readAsDataURL(blob);
+  });
+  const r = await fetch(`${API}/users/@me`, { method:"PATCH", headers:headers(token), body:JSON.stringify({ avatar: b64 }) });
+  return { ok: r.status, body: await r.text() };
+}
+
+async function postHypesquad(token, house) {
+  const r = await fetch(`${API}/hypesquad/online`, { method:"POST", headers:headers(token), body:JSON.stringify({ house_id: house }) });
+  return { ok: r.status, body: await r.text() };
+}
+
+async function setUsernameWithFallback(token, display, username) {
+  let r = await patchUser(token, { global_name: display, username });
+  if (r.ok === 200) return { ...r, used: username };
+
+  log(`  username ocupado, tentando reserva…`, "warn");
+  for (let i = 0; i < 5; i++) {
+    const candidate = `${username}${Math.floor(100 + Math.random() * 9900)}`;
+    r = await patchUser(token, { global_name: display, username: candidate });
+    if (r.ok === 200) return { ...r, used: candidate };
+    await sleep(1200);
+  }
+  return { ...r, used: null };
+}
+
+async function humanize(token, profile, photo, hypesquad) {
+  const short = token.slice(0, 8) + "…" + token.slice(-4);
+
+  const nm = await setUsernameWithFallback(token, profile.display, profile.username);
+  log(`  nome: ${nm.ok}${nm.used ? " → " + nm.used : ""}`, nm.ok === 200 ? "ok" : "err");
+
+  if (photo) {
+    const av = await patchAvatarFromURL(token, photo).catch(e => ({ ok: 0, body: String(e) }));
+    log(`  avatar: ${av.ok}`, av.ok === 200 ? "ok" : "err");
+    await sleep(900);
+  }
+
+  const prof = await patchProfile(token, { bio: profile.bio, pronouns: profile.pronouns });
+  log(`  bio/pronouns: ${prof.ok}`, (prof.ok === 200 || prof.ok === 204) ? "ok" : "err");
+  await sleep(900);
+
+  if (hypesquad > 0) {
+    const hs = await postHypesquad(token, hypesquad);
+    log(`  hypesquad: ${hs.ok}`, (hs.ok === 200 || hs.ok === 204) ? "ok" : "warn");
+    await sleep(900);
+  }
+
+  log(`  ✓ ${short}`, "ok");
+}
+
+$("go").addEventListener("click", async () => {
+  const tokens = $("tokens").value.split("\n").map(t => t.trim()).filter(Boolean);
+  if (!tokens.length) return log("sem token", "err");
+  
+  $("go").disabled = true;
+  $("log").innerHTML = "";
+
+  if (PHOTOS.length === 0) {
+    log(`buscando fotos no GitHub…`, "acc");
+    await carregarFotosDoGitHub();
+    if (PHOTOS.length === 0) {
+      log(`nenhuma foto encontrada. o repo é público?`, "err");
+      $("go").disabled = false;
+      return;
+    }
+  }
+
+  const hypesquad = parseInt($("hypesquad").value) || 0;
+  const pool = shuffle(PROFILES);
+  const photos = shuffle(PHOTOS);
+
+  log(`iniciando ${tokens.length} conta(s), ${photos.length} foto(s), ${pool.length} profiles…`, "acc");
+
+  for (let i = 0; i < tokens.length; i++) {
+    log(`\n[${i+1}/${tokens.length}]`, "acc");
+    const profile = pool[i % pool.length];
+    const photo = photos.length ? photos[i % photos.length] : null;
+    try { await humanize(tokens[i], profile, photo, hypesquad); }
+    catch (e) { log(`  erro: ${e.message}`, "err"); }
+    if (i < tokens.length - 1) await sleep(1500);
+  }
+
+  log(`\nfinalizado.`, "acc");
+  $("go").disabled = false;
+});
+</script>
+</body>
+</html>
