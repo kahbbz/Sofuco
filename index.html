@@ -174,14 +174,11 @@ async function patchProfile(token, payload) {
 
 async function patchAvatarFromURL(token, url) {
   if (!url) return { ok: 0, body: "sem foto" };
-  const blob = await fetch(url).then(r => r.blob());
-  const b64 = await new Promise((res, rej) => {
-    const fr = new FileReader();
-    fr.onload = () => res(fr.result);
-    fr.onerror = rej;
-    fr.readAsDataURL(blob);
+  const r = await fetch(`${API}/users/@me`, { 
+    method: "PATCH", 
+    headers: headers(token), 
+    body: JSON.stringify({ avatar: url }) 
   });
-  const r = await fetch(`${API}/users/@me`, { method:"PATCH", headers:headers(token), body:JSON.stringify({ avatar: b64 }) });
   return { ok: r.status, body: await r.text() };
 }
 
